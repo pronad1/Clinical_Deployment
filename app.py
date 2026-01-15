@@ -1,10 +1,13 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 import torch
 import pydicom
 import numpy as np
 from PIL import Image
 import io
 import os
+import sys
+import traceback
 from werkzeug.utils import secure_filename
 import timm
 from ultralytics import YOLO
@@ -13,6 +16,7 @@ import base64
 from torchvision import transforms
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
@@ -38,47 +42,65 @@ def load_models():
     global classification_models, detection_model
     
     print("Loading models...")
+    print(f"Device: {device}")
+    print(f"Current directory: {os.getcwd()}")
     
     # Load Classification Models
     try:
         # DenseNet121
         densenet = timm.create_model('densenet121', pretrained=False, num_classes=1)
         densenet_path = 'ensemble output/densenet121_balanced/model_best.pth'
+        print(f"Looking for DenseNet at: {densenet_path}")
         if os.path.exists(densenet_path):
-            densenet.load_state_dict(torch.load(densenet_path, map_location=device))
+            densenet.load_state_dict(torch.load(densenet_path, map_location=device, weights_only=False))
             densenet.eval()
             classification_models['densenet121'] = densenet.to(device)
             print("✓ DenseNet121 loaded")
+        else:
+            print(f"✗ DenseNet121 not found at {densenet_path}")
         
         # ResNet50
         resnet = timm.create_model('resnet50', pretrained=False, num_classes=1)
         resnet_path = 'ensemble output/resnet50_optimized/model_best.pth'
+        print(f"Looking for ResNet50 at: {resnet_path}")
         if os.path.exists(resnet_path):
-            resnet.load_state_dict(torch.load(resnet_path, map_location=device))
+            resnet.load_state_dict(torch.load(resnet_path, map_location=device, weights_only=False))
             resnet.eval()
             classification_models['resnet50'] = resnet.to(device)
             print("✓ ResNet50 loaded")
+        else:
+            print(f"✗ ResNet50 not found at {resnet_path}")
         
         # EfficientNetV2-S
         efficientnet = timm.create_model('tf_efficientnetv2_s', pretrained=False, num_classes=1)
         efficientnet_path = 'ensemble output/tf_efficientnetv2_s_optimized/model_best.pth'
+        print(f"Looking for EfficientNet at: {efficientnet_path}")
         if os.path.exists(efficientnet_path):
-            efficientnet.load_state_dict(torch.load(efficientnet_path, map_location=device))
+            efficientnet.load_state_dict(torch.load(efficientnet_path, map_location=device, weights_only=False))
             efficientnet.eval()
             classification_models['efficientnet'] = efficientnet.to(device)
             print("✓ EfficientNetV2-S loaded")
+        else:
+            print(f"✗ EfficientNet not found at {efficientnet_path}")
             
     except Exception as e:
         print(f"Warning: Error loading classification models: {e}")
+        traceback.print_exc()
     
     # Load YOLO Detection Model
     try:
         yolo_path = 'detection output/yolo11/weights/best.pt'
+        print(f"Looking for YOLO at: {yolo_path}")
         if os.path.exists(yolo_path):
             detection_model = YOLO(yolo_path)
             print("✓ YOLO11 detection model loaded")
+        else:
+            print(f"✗ YOLO not found at {yolo_path}")
     except Exception as e:
         print(f"Warning: Error loading detection model: {e}")
+        traceback.print_exc()
+    
+    print(f"\nModels loaded: {len(classification_models)} classification models, Detection: {detection_model is not None}")
 
 
 def validate_dicom(file_path):
@@ -219,20 +241,21 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    # Save file temporarily
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-    
     try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save file temporarily
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        print(f"Processing file: {filename}")
         # Validate DICOM
         is_valid, message = validate_dicom(filepath)
         if not is_valid:
@@ -278,26 +301,41 @@ def upload_file():
         # Clean up
         os.remove(filepath)
         
+        print(f"Successfully processed {filename}")
         return jsonify(result)
         
     except Exception as e:
         # Clean up on error
-        if os.path.exists(filepath):
+        if 'filepath' in locals() and os.path.exists(filepath):
             os.remove(filepath)
+        
+        # Log the full error
+        print(f"Error processing upload: {str(e)}")
+        traceback.print_exc()
+        
         return jsonify({
             'error': 'Processing failed',
-            'message': str(e)
+            'message': str(e),
+            'type': type(e).__name__
         }), 500
 
 
 @app.route('/health')
 def health():
+    model_info = {
+        'classification_models': list(classification_models.keys()),
+        'detection_model_loaded': detection_model is not None,
+        'device': str(device),
+        'upload_folder_exists': os.path.exists(app.config['UPLOAD_FOLDER'])
+    }
+    
     return jsonify({
         'status': 'healthy',
         'models_loaded': {
             'classification': len(classification_models),
             'detection': detection_model is not None
-        }
+        },
+        'details': model_info
     })
 
 
