@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,18 +31,71 @@
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 40px 30px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-icon {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
         }
 
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
         .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
+            font-size: 1.2em;
+            opacity: 0.95;
+            font-weight: 300;
         }
 
         .content {
@@ -50,39 +104,90 @@
 
         .upload-section {
             border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 40px;
+            border-radius: 20px;
+            padding: 70px 40px;
             text-align: center;
-            background: #f8f9ff;
-            transition: all 0.3s;
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            transition: all 0.3s ease;
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
         .upload-section:hover {
             border-color: #764ba2;
-            background: #f0f2ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-section:hover::before {
+            opacity: 1;
         }
 
         .upload-section.dragover {
-            background: #e8ebff;
+            background: linear-gradient(135deg, #e8ebff 0%, #f0f2ff 100%);
             border-color: #764ba2;
+            transform: scale(1.02);
         }
 
         .upload-icon {
-            font-size: 4em;
-            color: #667eea;
-            margin-bottom: 20px;
+            font-size: 5em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 25px;
+            display: inline-block;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         .upload-text {
-            font-size: 1.3em;
+            font-size: 1.4em;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
         }
 
         .upload-hint {
             color: #666;
-            font-size: 0.95em;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .file-info.active {
+            display: block;
         }
 
         #fileInput {
@@ -93,11 +198,15 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 15px 40px;
+            padding: 16px 45px;
             border-radius: 50px;
-            font-size: 1.1em;
+            font-size: 1.15em;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
             margin-top: 20px;
             display: inline-block;
         }
@@ -129,8 +238,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .results {
@@ -257,6 +371,57 @@
             color: #e74c3c;
         }
 
+        .footer {
+            background: #f8f9ff;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 40px;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .footer p {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .footer-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 700px;
+        }
+
+        .footer-warning strong {
+            color: #856404;
+        }
+
+        .footer-links {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
         .info-box {
             background: #fff9e6;
             border-left: 4px solid #f39c12;
@@ -276,11 +441,15 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏥 Spinal Injury Detection System</h1>
-            <p>AI-Powered Medical Image Analysis for Spine X-rays</p>
+            <div class="header-content">
+                <div class="header-icon">🏥</div>
+                <h1>Spinal Injury Detection System</h1>
+                <p>AI-Powered Medical Image Analysis for Spine X-rays</p>
+            </div>
         </div>
 
         <div class="content">
@@ -383,12 +552,39 @@
                 <!-- Info Box -->
                 <div class="info-box">
                     <h3>⚕️ Important Medical Notice</h3>
-                    <p>This AI analysis is for research purposes only and should not replace professional medical diagnosis. Please consult with a qualified radiologist or physician for medical advice.</p>
+                    <p>This AI analysis is for research purposes only and should not replace professional medical
+                        diagnosis. Please consult with a qualified radiologist or physician for medical advice.</p>
                 </div>
 
                 <!-- New Scan Button -->
                 <div class="new-scan-btn">
                     <button class="btn" id="newScanBtn">Analyze Another Scan</button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div class="footer-content">
+                    <p><strong>Spinal Injury Detection System v1.0</strong></p>
+                    <div class="footer-warning">
+                        <strong>⚕️ Medical Disclaimer:</strong> This AI-powered system is designed for research and
+                        educational purposes only. It should not be used as a substitute for professional medical
+                        diagnosis, advice, or treatment. Always consult qualified healthcare professionals for medical
+                        decisions.
+                    </div>
+                    <p>
+                        <strong>Technology:</strong> Ensemble CNN Classification (DenseNet121, ResNet50,
+                        EfficientNetV2-S) + YOLO11 Object Detection<br>
+                        <strong>Performance:</strong> 91.03% AUROC | 83.09% F1-Score on VinDr-SpineXR Dataset
+                    </p>
+                    <div class="footer-links">
+                        <a href="https://github.com/pronad1/Deploy-Model" target="_blank">📦 GitHub</a>
+                        <a href="#" onclick="window.location.href='/health'">🔧 System Health</a>
+                        <a href="https://vindr.ai/datasets/spinexr" target="_blank">📊 Dataset Info</a>
+                    </div>
+                    <p style="margin-top: 20px; font-size: 0.85em; color: #999;">
+                        © 2026 Spinal Injury Detection System | Powered by PyTorch & Flask
+                    </p>
                 </div>
             </div>
         </div>
@@ -436,12 +632,23 @@
 
         function handleFileSelect(file) {
             selectedFile = file;
-            uploadSection.querySelector('.upload-text').textContent = `Selected: ${file.name}`;
+            const fileName = file.name;
+            const fileSize = (file.size / 1024 / 1024).toFixed(2);
+
+            // Update upload section to show selected file
+            const uploadText = uploadSection.querySelector('.upload-text');
+            uploadText.innerHTML = `<strong>✓ File Selected</strong><br><span style="font-size: 0.9em; color: #667eea;">${fileName}</span><br><span style="font-size: 0.8em; color: #999;">Size: ${fileSize} MB</span>`;
             uploadBtn.style.display = 'inline-block';
+
+            // Prevent file input from opening again
+            fileInput.value = '';
         }
 
         // Upload and analyze
-        uploadBtn.addEventListener('click', async () => {
+        uploadBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
             if (!selectedFile) return;
 
             const formData = new FormData();
@@ -452,6 +659,7 @@
             errorSection.style.display = 'none';
             resultsSection.style.display = 'none';
             loadingSection.style.display = 'block';
+            uploadBtn.style.display = 'none';
 
             try {
                 const response = await fetch('/upload', {
@@ -487,18 +695,18 @@
             statusBadge.className = 'status-badge ' + (isAbnormal ? 'abnormal' : 'normal');
             statusBadge.textContent = isAbnormal ? '⚠️ ABNORMAL' : '✓ NORMAL';
 
-            document.getElementById('ensembleScore').textContent = 
+            document.getElementById('ensembleScore').textContent =
                 (classification.ensemble_score * 100).toFixed(2) + '%';
-            document.getElementById('confidence').textContent = 
+            document.getElementById('confidence').textContent =
                 classification.confidence.toFixed(2) + '%';
 
             // Individual model predictions
             const predictions = classification.individual_predictions;
-            document.getElementById('densenet').textContent = 
+            document.getElementById('densenet').textContent =
                 predictions.densenet121 ? (predictions.densenet121 * 100).toFixed(2) + '%' : 'N/A';
-            document.getElementById('resnet').textContent = 
+            document.getElementById('resnet').textContent =
                 predictions.resnet50 ? (predictions.resnet50 * 100).toFixed(2) + '%' : 'N/A';
-            document.getElementById('efficientnet').textContent = 
+            document.getElementById('efficientnet').textContent =
                 predictions.efficientnet ? (predictions.efficientnet * 100).toFixed(2) + '%' : 'N/A';
 
             // Detection results
@@ -508,7 +716,7 @@
 
                 const detectionList = document.getElementById('detectionList');
                 detectionList.innerHTML = '';
-                
+
                 data.detection.detections.forEach((det, idx) => {
                     const item = document.createElement('div');
                     item.className = 'detection-item';
@@ -520,12 +728,12 @@
                     detectionList.appendChild(item);
                 });
 
-                document.getElementById('annotatedImage').src = 
+                document.getElementById('annotatedImage').src =
                     'data:image/png;base64,' + data.detection.annotated_image;
             }
 
             // Preview image
-            document.getElementById('previewImage').src = 
+            document.getElementById('previewImage').src =
                 'data:image/png;base64,' + data.preview_image;
 
             // Metadata
@@ -538,7 +746,44 @@
         function displayError(message) {
             loadingSection.style.display = 'none';
             errorSection.style.display = 'block';
-            document.getElementById('errorMessage').textContent = message;
+
+            // Check if it's a non-spine DICOM error
+            const errorMsg = document.getElementById('errorMessage');
+            if (message.includes('spine') || message.includes('SPINE') || message.includes('appears to be')) {
+                errorMsg.innerHTML = `<strong>❌ Incorrect Image Type</strong><br><br>${message}<br><br><em style="font-size: 0.9em; color: #666;">This system is specifically designed for spine X-ray and MRI analysis only.</em>`;
+            } else {
+                errorMsg.textContent = message;
+            }
+
+            // Add retry button
+            setTimeout(() => {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'btn';
+                retryBtn.textContent = '🔄 Upload Another File';
+                retryBtn.style.marginTop = '20px';
+                retryBtn.onclick = resetUpload;
+
+                if (!errorSection.querySelector('.btn')) {
+                    errorSection.querySelector('div').appendChild(retryBtn);
+                }
+            }, 100);
+        }
+
+        function resetUpload() {
+            // Reset UI
+            selectedFile = null;
+            errorSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            loadingSection.style.display = 'none';
+            uploadSection.style.display = 'block';
+            uploadBtn.style.display = 'none';
+
+            // Reset upload text
+            const uploadText = uploadSection.querySelector('.upload-text');
+            uploadText.innerHTML = 'Drop your DICOM file here or click to browse';
+
+            // Clear file input
+            fileInput.value = '';
         }
 
         // New scan button
@@ -547,4 +792,5 @@
         });
     </script>
 </body>
+
 </html>

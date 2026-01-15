@@ -111,17 +111,43 @@ def load_models():
 
 
 def validate_dicom(file_path):
-    """Validate if file is a valid DICOM file"""
+    """Validate if file is a proper DICOM file and check if it's a spine image"""
     try:
-        pydicom.dcmread(file_path)
-        return True, "Valid DICOM file"
+        ds = pydicom.dcmread(file_path)
+        
+        # Check if it's a spine image by examining DICOM metadata
+        body_part = str(getattr(ds, 'BodyPartExamined', '')).upper()
+        study_description = str(getattr(ds, 'StudyDescription', '')).upper()
+        series_description = str(getattr(ds, 'SeriesDescription', '')).upper()
+        
+        # Look for spine-related keywords
+        spine_keywords = ['SPINE', 'VERTEBRA', 'LUMBAR', 'THORACIC', 'CERVICAL', 'SPINAL', 'C-SPINE', 'L-SPINE', 'T-SPINE']
+        
+        # Check if any spine keyword is present
+        all_text = f"{body_part} {study_description} {series_description}"
+        is_spine = any(keyword in all_text for keyword in spine_keywords)
+        
+        return True, ds, is_spine, body_part, str(getattr(ds, 'Modality', 'Unknown'))
     except Exception as e:
-        return False, f"Invalid DICOM file: {str(e)}"
+        return False, str(e), False, '', ''
 
 
 def preprocess_dicom(dicom_path):
     """Read and preprocess DICOM image"""
-    ds = pydicom.dcmread(dicom_path)
+    # Validate DICOM and check if it's a spine image
+    is_valid, result, is_spine, body_part, modality = validate_dicom(dicom_path)
+    
+    if not is_valid:
+        raise ValueError(f"Invalid DICOM file: {result}")
+    
+    # Check if it's a spine image
+    if not is_spine:
+        if body_part and body_part != 'UNKNOWN' and body_part != '':
+            raise ValueError(f"This appears to be a {body_part} {modality} scan. This system only analyzes spine X-rays and MRIs. Please upload a spine-related DICOM file.")
+        else:
+            raise ValueError("This DICOM file does not appear to be a spine X-ray or MRI. This system is specifically designed for spine analysis only.")
+    
+    ds = result
     pixel_array = ds.pixel_array
     
     # Handle MONOCHROME1 (inverted grayscale)
