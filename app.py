@@ -171,13 +171,28 @@ def preprocess_dicom(dicom_path):
     pixel_array = ds.pixel_array
     
     # Handle MONOCHROME1 (inverted grayscale)
+    # MONOCHROME1 means "0 is White", we want "0 is Black"
     if hasattr(ds, "PhotometricInterpretation") and ds.PhotometricInterpretation == "MONOCHROME1":
         pixel_array = np.amax(pixel_array) - pixel_array
     
-    # Normalize to 0-255
-    pixel_array = pixel_array - np.min(pixel_array)
-    if np.max(pixel_array) != 0:
-        pixel_array = (pixel_array / np.max(pixel_array) * 255).astype(np.uint8)
+    # Robust normalization to 0-255 range (fixes display issues on Linux/deployment)
+    # Convert to float for precise calculations
+    pixel_array = pixel_array.astype(np.float64)
+    
+    # Remove negative values and normalize
+    pixel_array = np.maximum(pixel_array, 0)
+    
+    # Normalize to 0-255 range
+    pixel_min = np.min(pixel_array)
+    pixel_max = np.max(pixel_array)
+    
+    if pixel_max > pixel_min:  # Avoid division by zero
+        pixel_array = ((pixel_array - pixel_min) / (pixel_max - pixel_min)) * 255.0
+    else:
+        pixel_array = np.zeros_like(pixel_array)
+    
+    # Convert to uint8 for consistency
+    pixel_array = np.uint8(pixel_array)
     
     return pixel_array, ds
 
