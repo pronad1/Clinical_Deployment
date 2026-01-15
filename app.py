@@ -52,7 +52,10 @@ def load_models():
         densenet_path = 'ensemble output/densenet121_balanced/model_best.pth'
         print(f"Looking for DenseNet at: {densenet_path}")
         if os.path.exists(densenet_path):
-            densenet.load_state_dict(torch.load(densenet_path, map_location=device, weights_only=False))
+            checkpoint = torch.load(densenet_path, map_location=device, weights_only=False)
+            # Handle checkpoint format (with 'model_state_dict' key or direct state dict)
+            state_dict = checkpoint.get('model_state_dict', checkpoint)
+            densenet.load_state_dict(state_dict)
             densenet.eval()
             classification_models['densenet121'] = densenet.to(device)
             print("✓ DenseNet121 loaded")
@@ -64,7 +67,9 @@ def load_models():
         resnet_path = 'ensemble output/resnet50_optimized/model_best.pth'
         print(f"Looking for ResNet50 at: {resnet_path}")
         if os.path.exists(resnet_path):
-            resnet.load_state_dict(torch.load(resnet_path, map_location=device, weights_only=False))
+            checkpoint = torch.load(resnet_path, map_location=device, weights_only=False)
+            state_dict = checkpoint.get('model_state_dict', checkpoint)
+            resnet.load_state_dict(state_dict)
             resnet.eval()
             classification_models['resnet50'] = resnet.to(device)
             print("✓ ResNet50 loaded")
@@ -76,7 +81,9 @@ def load_models():
         efficientnet_path = 'ensemble output/tf_efficientnetv2_s_optimized/model_best.pth'
         print(f"Looking for EfficientNet at: {efficientnet_path}")
         if os.path.exists(efficientnet_path):
-            efficientnet.load_state_dict(torch.load(efficientnet_path, map_location=device, weights_only=False))
+            checkpoint = torch.load(efficientnet_path, map_location=device, weights_only=False)
+            state_dict = checkpoint.get('model_state_dict', checkpoint)
+            efficientnet.load_state_dict(state_dict)
             efficientnet.eval()
             classification_models['efficientnet'] = efficientnet.to(device)
             print("✓ EfficientNetV2-S loaded")
@@ -344,5 +351,6 @@ if __name__ == '__main__':
     # Use environment variables for production
     import os
     port = int(os.environ.get('PORT', 5000))
-    debug = os.environ.get('FLASK_ENV') != 'production'
-    app.run(debug=debug, host='0.0.0.0', port=port)
+    # Disable debug mode to avoid auto-reloader issues
+    app.run(debug=False, host='0.0.0.0', port=port)
+
