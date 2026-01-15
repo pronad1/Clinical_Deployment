@@ -1,0 +1,11 @@
+Flask==3.0.0
+torch==2.1.0
+torchvision==0.16.0
+pydicom==2.4.4
+Pillow==10.1.0
+opencv-python==4.8.1.78
+ultralytics==8.0.228
+timm==0.9.12
+numpy==1.24.3
+Werkzeug==3.0.1
+gunicorn==21.2.0

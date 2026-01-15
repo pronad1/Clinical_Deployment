@@ -1,0 +1,61 @@
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.eggs/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Upload directory
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Model weights (uncomment if you want to exclude from repo)
+# Note: Currently included as they're under 100MB each
+# ensemble output/**/*.pth
+# detection output/**/*.pt
+
+# Training artifacts (already cleaned)
+# These patterns are just in case new training files are added
+**/checkpoint_epoch_*.pth
+**/training_history.json
+**/args.yaml
+**/results.csv
+**/*_curve.png
+**/confusion_matrix*.png
+**/labels.jpg
+**/train_batch*.jpg
+**/val_batch*.jpg
