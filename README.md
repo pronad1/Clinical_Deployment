@@ -8,7 +8,7 @@
 
 AI-powered web application for detecting spinal lesions from DICOM X-ray images using deep learning models.
 
-🌐 **[Live Demo](#)** | 📖 **[Documentation](DEPLOYMENT.md)** | 🚀 **[GitHub Setup](GITHUB_SETUP.md)**
+🌐 **[Live Demo](https://pronad1.github.io/Deploy-Model/)** | 📖 **[Documentation](DEPLOYMENT.md)** | 🚀 **[GitHub Setup](GITHUB_SETUP.md)**
 
 ## 📋 Overview
 
