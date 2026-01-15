@@ -121,11 +121,31 @@ def validate_dicom(file_path):
         series_description = str(getattr(ds, 'SeriesDescription', '')).upper()
         
         # Look for spine-related keywords
-        spine_keywords = ['SPINE', 'VERTEBRA', 'LUMBAR', 'THORACIC', 'CERVICAL', 'SPINAL', 'C-SPINE', 'L-SPINE', 'T-SPINE']
+        spine_keywords = ['SPINE', 'VERTEBRA', 'LUMBAR', 'THORACIC', 'CERVICAL', 'SPINAL', 
+                         'C-SPINE', 'L-SPINE', 'T-SPINE', 'DORSAL', 'SACRAL', 'COCCYX']
+        
+        # Look for non-spine keywords (things we definitely don't want)
+        non_spine_keywords = ['CHEST', 'LUNG', 'BRAIN', 'HEAD', 'SKULL', 'ABDOMEN', 
+                             'PELVIS', 'LEG', 'ARM', 'HAND', 'FOOT', 'KNEE', 'SHOULDER',
+                             'ELBOW', 'WRIST', 'ANKLE', 'CARDIAC', 'HEART']
         
         # Check if any spine keyword is present
         all_text = f"{body_part} {study_description} {series_description}"
-        is_spine = any(keyword in all_text for keyword in spine_keywords)
+        
+        # Check for non-spine keywords first (more restrictive)
+        has_non_spine = any(keyword in all_text for keyword in non_spine_keywords)
+        has_spine = any(keyword in all_text for keyword in spine_keywords)
+        
+        # If it explicitly has non-spine keywords, mark as not spine
+        # If it has spine keywords, mark as spine
+        # If no keywords at all, assume it might be spine (lenient for unlabeled files)
+        if has_non_spine:
+            is_spine = False
+        elif has_spine:
+            is_spine = True
+        else:
+            # No clear indicators - assume it's okay (lenient mode)
+            is_spine = True
         
         return True, ds, is_spine, body_part, str(getattr(ds, 'Modality', 'Unknown'))
     except Exception as e:
@@ -289,18 +309,29 @@ def upload_file():
         file.save(filepath)
         
         print(f"Processing file: {filename}")
-        # Validate DICOM
-        is_valid, message = validate_dicom(filepath)
-        if not is_valid:
+        # Validate DICOM - validation is now done in preprocess_dicom
+        # Just do a quick check if file can be read
+        try:
+            pydicom.dcmread(filepath)
+        except Exception as e:
             os.remove(filepath)
             return jsonify({
                 'error': 'Invalid file format',
                 'message': 'Please upload a valid DICOM (.dcm or .dicom) file',
-                'details': message
+                'details': str(e)
             }), 400
         
         # Process DICOM
-        pixel_array, dicom_data = preprocess_dicom(filepath)
+        try:
+            pixel_array, dicom_data = preprocess_dicom(filepath)
+        except ValueError as ve:
+            # Handle non-spine DICOM files
+            os.remove(filepath)
+            error_message = str(ve)
+            return jsonify({
+                'error': 'Invalid spine DICOM',
+                'message': error_message
+            }), 400
         
         # Run classification
         classification_result = classify_image(pixel_array)
