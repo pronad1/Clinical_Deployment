@@ -1,28 +1,69 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-import torch
-import pydicom
-from pydicom.pixel_data_handlers import pylibjpeg_handler
-import numpy as np
-from PIL import Image
-import io
 import os
 import sys
 import traceback
 import warnings
 from werkzeug.utils import secure_filename
-import timm
-from ultralytics import YOLO
-import cv2
-import base64
-from torchvision import transforms
+
+# Memory optimization - set environment variables BEFORE importing heavy libraries
+os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib' if os.environ.get('RENDER') else os.path.join(os.getcwd(), '.matplotlib')
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:512'
+
+# Disable matplotlib font manager logging and reduce font cache
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend
+matplotlib.rcParams['font.size'] = 10
+matplotlib.rcParams['axes.labelsize'] = 10
+
+# Lazy imports - only load heavy libraries when needed
+# This reduces startup memory usage significantly
+
+def _get_torch():
+    import torch
+    return torch
+
+def _get_numpy():
+    import numpy as np
+    return np
+
+def _get_cv2():
+    import cv2
+    return cv2
+
+def _get_transforms():
+    from torchvision import transforms
+    return transforms
+
+def _get_timm():
+    import timm
+    return timm
+
+def _get_yolo():
+    from ultralytics import YOLO
+    return YOLO
+
+def _get_pydicom():
+    import pydicom
+    from pydicom.pixel_data_handlers import pylibjpeg_handler
+    return pydicom
+
+def _get_pil():
+    from PIL import Image
+    import io
+    return Image, io
+
+def _get_base64():
+    import base64
+    return base64
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Use /tmp for uploads on production (read-only filesystem on render.com)
-# Local development uses 'uploads' folder
 if os.environ.get('RENDER'):
     app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 else:
@@ -37,7 +78,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Global model variables
 classification_models = {}
 detection_model = None
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = None  # Will be set when loading models
 
 # Ensemble weights from final_results.json
 ENSEMBLE_WEIGHTS = {
@@ -55,10 +96,23 @@ def allowed_file(filename):
 
 def load_models():
     """Load all trained models"""
-    global classification_models, detection_model
+    global classification_models, detection_model, device
+    
+    # Lazy load torch and set device
+    torch = _get_torch()
+    
+    # Force CPU mode on low-memory environments to save memory
+    # GPU memory allocation can be expensive even if not used
+    device = torch.device('cpu')
+    
+    # Set inference mode globally - reduces memory usage
+    torch.set_grad_enabled(False)
+    
+    timm = _get_timm()
+    YOLO = _get_yolo()
     
     print("Loading models...")
-    print(f"Device: {device}")
+    print(f"Device: {device} (CPU-only mode for memory optimization)")
     print(f"Current directory: {os.getcwd()}")
     
     # Load Classification Models
@@ -73,8 +127,10 @@ def load_models():
             state_dict = checkpoint.get('model_state_dict', checkpoint)
             densenet.load_state_dict(state_dict)
             densenet.eval()
-            classification_models['densenet121'] = densenet.to(device)
+            # Keep on CPU
+            classification_models['densenet121'] = densenet
             print("✓ DenseNet121 loaded")
+            del checkpoint, state_dict  # Free memory immediately
         else:
             print(f"✗ DenseNet121 not found at {densenet_path}")
         
@@ -87,8 +143,9 @@ def load_models():
             state_dict = checkpoint.get('model_state_dict', checkpoint)
             resnet.load_state_dict(state_dict)
             resnet.eval()
-            classification_models['resnet50'] = resnet.to(device)
+            classification_models['resnet50'] = resnet
             print("✓ ResNet50 loaded")
+            del checkpoint, state_dict
         else:
             print(f"✗ ResNet50 not found at {resnet_path}")
         
@@ -101,8 +158,9 @@ def load_models():
             state_dict = checkpoint.get('model_state_dict', checkpoint)
             efficientnet.load_state_dict(state_dict)
             efficientnet.eval()
-            classification_models['efficientnet'] = efficientnet.to(device)
+            classification_models['efficientnet'] = efficientnet
             print("✓ EfficientNetV2-S loaded")
+            del checkpoint, state_dict
         else:
             print(f"✗ EfficientNet not found at {efficientnet_path}")
             
@@ -129,6 +187,7 @@ def load_models():
 def validate_dicom(file_path):
     """Validate if file is a proper DICOM file and check if it's a spine image"""
     try:
+        pydicom = _get_pydicom()
         ds = pydicom.dcmread(file_path)
         
         # Check if it's a spine image by examining DICOM metadata
@@ -174,6 +233,9 @@ def check_if_spine_image(pixel_array):
     # We'll use image characteristics to detect medical vs natural images
     
     try:
+        np = _get_numpy()
+        cv2 = _get_cv2()
+        
         # Check if original image is color (RGB)
         is_color = len(pixel_array.shape) == 3 and pixel_array.shape[2] == 3
         
@@ -220,17 +282,14 @@ def check_if_spine_image(pixel_array):
         if height < 50 or width < 50:
             return False, "Image resolution too low for medical analysis"
         
-        # Check 3: Histogram analysis - medical images have specific intensity distribution
-        # Medical X-rays typically have a bimodal or wide distribution
+        
         hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
         hist = hist.flatten()
         
         # Normalize histogram
         hist = hist / (height * width)
         
-        # Check for concentrated histogram (natural photos often have this)
-        # Medical images use more of the intensity range
-        # Increased threshold to 0.25 to be more lenient
+        
         max_bin_ratio = np.max(hist)
         if max_bin_ratio > 0.25:  # Too concentrated in one intensity
             return False, "Image histogram suggests a natural photo, not medical imaging"
@@ -240,9 +299,6 @@ def check_if_spine_image(pixel_array):
         edges = cv2.Canny(gray, 50, 150)
         edge_ratio = np.count_nonzero(edges) / (height * width)
         
-        # Medical images typically have edges from bones and soft tissue
-        # Natural photos have much higher edge density (textures, details)
-        # Increased threshold to 0.35 to be more lenient with medical images
         if edge_ratio > 0.35:  # Too many edges for medical image
             return False, "Image has too many edges - appears to be a photograph"
         
@@ -277,6 +333,10 @@ def preprocess_image(image_path, is_dicom=False):
     else:
         # Load regular image formats (jpg, png, etc.)
         try:
+            Image, io = _get_pil()
+            np = _get_numpy()
+            cv2 = _get_cv2()
+            
             # Read image using PIL
             pil_image = Image.open(image_path)
             
@@ -328,7 +388,11 @@ def preprocess_image(image_path, is_dicom=False):
 
 def preprocess_dicom(dicom_path):
     """Read and preprocess DICOM image"""
+    pydicom = _get_pydicom()
+    np = _get_numpy()
+    
     # Configure pydicom to use pylibjpeg for JPEG 2000 (better handling)
+    from pydicom.pixel_data_handlers import pylibjpeg_handler
     pydicom.config.pixel_data_handlers = [pylibjpeg_handler]
     
     # Suppress JPEG 2000 bit depth warnings (these are harmless but noisy)
@@ -379,6 +443,11 @@ def preprocess_dicom(dicom_path):
 
 def classify_image(pixel_array):
     """Run ensemble classification"""
+    torch = _get_torch()
+    np = _get_numpy()
+    Image, io = _get_pil()
+    transforms = _get_transforms()
+    
     # Transform for models
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -393,7 +462,7 @@ def classify_image(pixel_array):
         rgb_image = pixel_array
     
     pil_image = Image.fromarray(rgb_image)
-    input_tensor = transform(pil_image).unsqueeze(0).to(device)
+    input_tensor = transform(pil_image).unsqueeze(0)  # Keep on CPU
     
     # Get predictions from each model
     predictions = {}
@@ -436,6 +505,9 @@ def detect_lesions(pixel_array, confidence_threshold=0.25):
     if detection_model is None:
         return None
     
+    cv2 = _get_cv2()
+    np = _get_numpy()
+    
     # Convert to RGB for YOLO
     if len(pixel_array.shape) == 2:
         rgb_image = cv2.cvtColor(pixel_array, cv2.COLOR_GRAY2RGB)
@@ -472,6 +544,7 @@ def detect_lesions(pixel_array, confidence_threshold=0.25):
                            0.5, (255, 0, 0), 2)
     
     # Convert annotated image to base64
+    base64 = _get_base64()
     _, buffer = cv2.imencode('.png', annotated_image)
     img_base64 = base64.b64encode(buffer).decode('utf-8')
     
@@ -521,6 +594,7 @@ def upload_file():
         # Validate file can be read
         if is_dicom:
             try:
+                pydicom = _get_pydicom()
                 pydicom.dcmread(filepath)
             except Exception as e:
                 os.remove(filepath)
@@ -532,6 +606,7 @@ def upload_file():
         else:
             # Validate regular image file
             try:
+                Image, io = _get_pil()
                 Image.open(filepath).verify()
             except Exception as e:
                 os.remove(filepath)
@@ -578,6 +653,8 @@ def upload_file():
                     print(f"Classification: Abnormal, but no visible lesions detected by YOLO")
         
         # Create preview image
+        cv2 = _get_cv2()
+        base64 = _get_base64()
         _, buffer = cv2.imencode('.png', pixel_array)
         preview_base64 = base64.b64encode(buffer).decode('utf-8')
         
