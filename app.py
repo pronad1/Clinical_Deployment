@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 
 # Memory optimization - set environment variables BEFORE importing heavy libraries
 os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib' if os.environ.get('RENDER') else os.path.join(os.getcwd(), '.matplotlib')
+os.environ['YOLO_CONFIG_DIR'] = '/tmp'  # Fix Ultralytics config directory warning
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
@@ -75,10 +76,12 @@ ALLOWED_EXTENSIONS = {'dcm', 'dicom', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif'
 # Create uploads directory
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Global model variables
+# Global model variables - TRUE LAZY LOADING (on first request only)
 classification_models = {}
 detection_model = None
 device = None  # Will be set when loading models
+models_loaded = False  # Track if models have been loaded
+model_load_lock = None  # Will be initialized as threading.Lock()
 
 # Ensemble weights from final_results.json
 ENSEMBLE_WEIGHTS = {
@@ -95,94 +98,107 @@ def allowed_file(filename):
 
 
 def load_models():
-    """Load all trained models"""
-    global classification_models, detection_model, device
+    """Load all trained models - only called on first request"""
+    global classification_models, detection_model, device, models_loaded, model_load_lock
     
-    # Lazy load torch and set device
-    torch = _get_torch()
+    # Thread safety for lazy loading
+    import threading
+    if model_load_lock is None:
+        model_load_lock = threading.Lock()
     
-    # Force CPU mode on low-memory environments to save memory
-    # GPU memory allocation can be expensive even if not used
-    device = torch.device('cpu')
-    
-    # Set inference mode globally - reduces memory usage
-    torch.set_grad_enabled(False)
-    
-    timm = _get_timm()
-    YOLO = _get_yolo()
-    
-    print("Loading models...")
-    print(f"Device: {device} (CPU-only mode for memory optimization)")
-    print(f"Current directory: {os.getcwd()}")
-    
-    # Load Classification Models
-    try:
-        # DenseNet121
-        densenet = timm.create_model('densenet121', pretrained=False, num_classes=1)
-        densenet_path = os.path.join('ensemble output', 'densenet121_balanced', 'model_best.pth')
-        print(f"Looking for DenseNet at: {densenet_path}")
-        if os.path.exists(densenet_path):
-            checkpoint = torch.load(densenet_path, map_location=device, weights_only=False)
-            # Handle checkpoint format (with 'model_state_dict' key or direct state dict)
-            state_dict = checkpoint.get('model_state_dict', checkpoint)
-            densenet.load_state_dict(state_dict)
-            densenet.eval()
-            # Keep on CPU
-            classification_models['densenet121'] = densenet
-            print("✓ DenseNet121 loaded")
-            del checkpoint, state_dict  # Free memory immediately
-        else:
-            print(f"✗ DenseNet121 not found at {densenet_path}")
+    with model_load_lock:
+        # Double-check locking pattern
+        if models_loaded:
+            return
         
-        # ResNet50
-        resnet = timm.create_model('resnet50', pretrained=False, num_classes=1)
-        resnet_path = os.path.join('ensemble output', 'resnet50_optimized', 'model_best.pth')
-        print(f"Looking for ResNet50 at: {resnet_path}")
-        if os.path.exists(resnet_path):
-            checkpoint = torch.load(resnet_path, map_location=device, weights_only=False)
-            state_dict = checkpoint.get('model_state_dict', checkpoint)
-            resnet.load_state_dict(state_dict)
-            resnet.eval()
-            classification_models['resnet50'] = resnet
-            print("✓ ResNet50 loaded")
-            del checkpoint, state_dict
-        else:
-            print(f"✗ ResNet50 not found at {resnet_path}")
+        print("\n🔄 LOADING MODELS ON FIRST REQUEST (This may take 30-60 seconds)...")
         
-        # EfficientNetV2-S
-        efficientnet = timm.create_model('tf_efficientnetv2_s', pretrained=False, num_classes=1)
-        efficientnet_path = os.path.join('ensemble output', 'tf_efficientnetv2_s_optimized', 'model_best.pth')
-        print(f"Looking for EfficientNet at: {efficientnet_path}")
-        if os.path.exists(efficientnet_path):
-            checkpoint = torch.load(efficientnet_path, map_location=device, weights_only=False)
-            state_dict = checkpoint.get('model_state_dict', checkpoint)
-            efficientnet.load_state_dict(state_dict)
-            efficientnet.eval()
-            classification_models['efficientnet'] = efficientnet
-            print("✓ EfficientNetV2-S loaded")
-            del checkpoint, state_dict
-        else:
-            print(f"✗ EfficientNet not found at {efficientnet_path}")
+        # Lazy load torch and set device
+        torch = _get_torch()
+        
+        # Force CPU mode on low-memory environments to save memory
+        # GPU memory allocation can be expensive even if not used
+        device = torch.device('cpu')
+        
+        # Set inference mode globally - reduces memory usage
+        torch.set_grad_enabled(False)
+        
+        timm = _get_timm()
+        YOLO = _get_yolo()
+        
+        print("Loading models...")
+        print(f"Device: {device} (CPU-only mode for memory optimization)")
+        print(f"Current directory: {os.getcwd()}")
+        
+        # Load Classification Models
+        try:
+            # DenseNet121
+            densenet = timm.create_model('densenet121', pretrained=False, num_classes=1)
+            densenet_path = os.path.join('ensemble output', 'densenet121_balanced', 'model_best.pth')
+            print(f"Looking for DenseNet at: {densenet_path}")
+            if os.path.exists(densenet_path):
+                checkpoint = torch.load(densenet_path, map_location=device, weights_only=False)
+                # Handle checkpoint format (with 'model_state_dict' key or direct state dict)
+                state_dict = checkpoint.get('model_state_dict', checkpoint)
+                densenet.load_state_dict(state_dict)
+                densenet.eval()
+                # Keep on CPU
+                classification_models['densenet121'] = densenet
+                print("✓ DenseNet121 loaded")
+                del checkpoint, state_dict  # Free memory immediately
+            else:
+                print(f"✗ DenseNet121 not found at {densenet_path}")
             
-    except Exception as e:
-        print(f"Warning: Error loading classification models: {e}")
-        traceback.print_exc()
-    
-    # Load YOLO Detection Model
-    try:
-        yolo_path = os.path.join('detection output', 'yolo11', 'weights', 'best.pt')
-        print(f"Looking for YOLO at: {yolo_path}")
-        if os.path.exists(yolo_path):
-            detection_model = YOLO(yolo_path)
-            print("✓ YOLO11 detection model loaded")
-        else:
-            print(f"✗ YOLO not found at {yolo_path}")
-    except Exception as e:
-        print(f"Warning: Error loading detection model: {e}")
-        traceback.print_exc()
-    
-    print(f"\nModels loaded: {len(classification_models)} classification models, Detection: {detection_model is not None}")
-
+            # ResNet50
+            resnet = timm.create_model('resnet50', pretrained=False, num_classes=1)
+            resnet_path = os.path.join('ensemble output', 'resnet50_optimized', 'model_best.pth')
+            print(f"Looking for ResNet50 at: {resnet_path}")
+            if os.path.exists(resnet_path):
+                checkpoint = torch.load(resnet_path, map_location=device, weights_only=False)
+                state_dict = checkpoint.get('model_state_dict', checkpoint)
+                resnet.load_state_dict(state_dict)
+                resnet.eval()
+                classification_models['resnet50'] = resnet
+                print("✓ ResNet50 loaded")
+                del checkpoint, state_dict
+            else:
+                print(f"✗ ResNet50 not found at {resnet_path}")
+            
+            # EfficientNetV2-S
+            efficientnet = timm.create_model('tf_efficientnetv2_s', pretrained=False, num_classes=1)
+            efficientnet_path = os.path.join('ensemble output', 'tf_efficientnetv2_s_optimized', 'model_best.pth')
+            print(f"Looking for EfficientNet at: {efficientnet_path}")
+            if os.path.exists(efficientnet_path):
+                checkpoint = torch.load(efficientnet_path, map_location=device, weights_only=False)
+                state_dict = checkpoint.get('model_state_dict', checkpoint)
+                efficientnet.load_state_dict(state_dict)
+                efficientnet.eval()
+                classification_models['efficientnet'] = efficientnet
+                print("✓ EfficientNetV2-S loaded")
+                del checkpoint, state_dict
+            else:
+                print(f"✗ EfficientNet not found at {efficientnet_path}")
+                
+        except Exception as e:
+            print(f"Warning: Error loading classification models: {e}")
+            traceback.print_exc()
+        
+        # Load YOLO Detection Model
+        try:
+            yolo_path = os.path.join('detection output', 'yolo11', 'weights', 'best.pt')
+            print(f"Looking for YOLO at: {yolo_path}")
+            if os.path.exists(yolo_path):
+                detection_model = YOLO(yolo_path)
+                print("✓ YOLO11 detection model loaded")
+            else:
+                print(f"✗ YOLO not found at {yolo_path}")
+        except Exception as e:
+            print(f"Warning: Error loading detection model: {e}")
+            traceback.print_exc()
+        
+        print(f"\n✅ Models loaded: {len(classification_models)} classification models, Detection: {detection_model is not None}")
+        models_loaded = True
+        print("🚀 Application ready to serve requests!\n")
 
 def validate_dicom(file_path):
     """Validate if file is a proper DICOM file and check if it's a spine image"""
@@ -563,6 +579,10 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    # Lazy load models on first request
+    if not models_loaded:
+        load_models()
+    
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -699,25 +719,21 @@ def upload_file():
 
 @app.route('/health')
 def health():
-    model_info = {
-        'classification_models': list(classification_models.keys()),
-        'detection_model_loaded': detection_model is not None,
-        'device': str(device),
-        'upload_folder_exists': os.path.exists(app.config['UPLOAD_FOLDER'])
-    }
-    
+    """Health check endpoint - returns immediately without loading models"""
     return jsonify({
         'status': 'healthy',
-        'models_loaded': {
+        'models_loaded': models_loaded,
+        'model_count': {
             'classification': len(classification_models),
             'detection': detection_model is not None
         },
-        'details': model_info
+        'upload_folder_exists': os.path.exists(app.config['UPLOAD_FOLDER']),
+        'message': 'Models will load on first prediction request' if not models_loaded else 'Ready'
     })
 
 
-# Load models when app starts (for both flask and gunicorn)
-load_models()
+# DON'T load models at startup - save memory!
+# Models will be loaded on first prediction request
 
 if __name__ == '__main__':
     # Use environment variables for production
