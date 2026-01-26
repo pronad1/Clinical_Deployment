@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import sys
@@ -730,6 +730,107 @@ def health():
         'upload_folder_exists': os.path.exists(app.config['UPLOAD_FOLDER']),
         'message': 'Models will load on first prediction request' if not models_loaded else 'Ready'
     })
+
+
+@app.route('/convert-to-jpeg', methods=['POST'])
+def convert_to_jpeg():
+    """Convert DICOM image to JPEG format and return it"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save file temporarily
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Determine if file is DICOM
+        file_extension = filename.rsplit('.', 1)[1].lower()
+        is_dicom = file_extension in {'dcm', 'dicom'}
+        
+        if is_dicom:
+            # Read DICOM and convert to JPEG
+            pydicom = _get_pydicom()
+            cv2 = _get_cv2()
+            np = _get_numpy()
+            
+            ds = pydicom.dcmread(filepath)
+            pixel_array = ds.pixel_data
+            
+            # Convert to numpy array
+            if hasattr(pixel_array, 'tobytes'):
+                pixel_array = np.frombuffer(pixel_array.tobytes(), dtype=np.uint16)
+            else:
+                pixel_array = np.frombuffer(pixel_array, dtype=np.uint16)
+            
+            # Reshape based on DICOM dimensions
+            pixel_array = pixel_array.reshape((ds.Rows, ds.Columns))
+            
+            # Normalize to 8-bit (0-255)
+            pixel_array = ((pixel_array - pixel_array.min()) / (pixel_array.max() - pixel_array.min()) * 255).astype(np.uint8)
+            
+            # Apply CLAHE for better visualization
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            pixel_array = clahe.apply(pixel_array)
+            
+            # Save as JPEG
+            output_filename = filename.rsplit('.', 1)[0] + '.jpg'
+            output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+            cv2.imwrite(output_path, pixel_array, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            
+            # Clean up DICOM file
+            os.remove(filepath)
+            
+            # Return the JPEG file
+            return send_file(
+                output_path,
+                mimetype='image/jpeg',
+                as_attachment=True,
+                download_name=output_filename
+            )
+        else:
+            # Already an image file, just return it as JPEG
+            Image, io = _get_pil()
+            img = Image.open(filepath)
+            
+            # Convert to RGB if needed
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Save as JPEG
+            output_filename = filename.rsplit('.', 1)[0] + '.jpg'
+            output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+            img.save(output_path, 'JPEG', quality=95)
+            
+            # Clean up original file
+            os.remove(filepath)
+            
+            return send_file(
+                output_path,
+                mimetype='image/jpeg',
+                as_attachment=True,
+                download_name=output_filename
+            )
+            
+    except Exception as e:
+        # Clean up on error
+        if 'filepath' in locals() and os.path.exists(filepath):
+            os.remove(filepath)
+        if 'output_path' in locals() and os.path.exists(output_path):
+            os.remove(output_path)
+        
+        print(f"Error converting to JPEG: {str(e)}")
+        traceback.print_exc()
+        
+        return jsonify({
+            'error': 'Conversion failed',
+            'message': str(e)
+        }), 500
 
 
 # DON'T load models at startup - save memory!

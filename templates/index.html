@@ -520,6 +520,10 @@
                     <div class="image-preview">
                         <h3>Annotated Image</h3>
                         <img id="annotatedImage" src="" alt="Annotated scan">
+                        <button onclick="downloadAnnotatedImage()"
+                            style="margin-top: 15px; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                            📥 Download as JPEG
+                        </button>
                     </div>
                 </div>
 
@@ -528,6 +532,10 @@
                     <div class="result-header">Original Scan</div>
                     <div class="image-preview">
                         <img id="previewImage" src="" alt="Original scan">
+                        <button onclick="downloadOriginalImage()"
+                            style="margin-top: 15px; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                            📥 Download Original
+                        </button>
                     </div>
                     <div class="result-grid" style="margin-top: 20px;">
                         <div class="metric">
@@ -790,6 +798,58 @@
         newScanBtn.addEventListener('click', () => {
             location.reload();
         });
+
+        // Download annotated image function
+        function downloadAnnotatedImage() {
+            const img = document.getElementById('annotatedImage');
+            const imgSrc = img.src;
+
+            if (!imgSrc || imgSrc === '') {
+                alert('No image available to download');
+                return;
+            }
+
+            // Create a temporary link element
+            const link = document.createElement('a');
+            link.href = imgSrc;
+
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+            link.download = `spine_abnormal_detected_${timestamp}.jpg`;
+
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            console.log('Download initiated for annotated image');
+        }
+
+        // Download original image function
+        function downloadOriginalImage() {
+            const img = document.getElementById('previewImage');
+            const imgSrc = img.src;
+
+            if (!imgSrc || imgSrc === '') {
+                alert('No image available to download');
+                return;
+            }
+
+            // Create a temporary link element
+            const link = document.createElement('a');
+            link.href = imgSrc;
+
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+            link.download = `spine_original_${timestamp}.jpg`;
+
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            console.log('Download initiated for original image');
+        }
     </script>
 </body>
 
