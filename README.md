@@ -1,5 +1,6 @@
 # Spinal Injury Detection System
 
+
 ![Python](https://img.shields.io/badge/python-v3.9-blue)
 ![Flask](https://img.shields.io/badge/flask-3.0.0-green)
 ![PyTorch](https://img.shields.io/badge/pytorch-2.1.0-red)
