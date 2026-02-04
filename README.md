@@ -649,5 +649,4 @@ If you use this software in your research, please cite:
 - Contributing Guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
-
 **Maintained with commitment to advancing medical AI research and open-source collaboration.**
