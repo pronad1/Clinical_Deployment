@@ -705,12 +705,15 @@
                         <p>Generating LIME explanations... This may take 10-20 seconds.</p>
                     </div>
                     <div class="viz-result" id="limeResult">
-                        <h3>🔍 LIME Explainability Analysis</h3>
+                        <h3>🔍 Ensemble LIME Explainability Analysis</h3>
                         <p style="color: #666; margin-bottom: 15px;">
-                            LIME (Local Interpretable Model-agnostic Explanations) shows which regions of the image
-                            contribute most to each model's prediction. Green boundaries highlight important
-                            superpixels,
-                            and the heatmap shows contribution strength (red = high, blue = low).
+                            LIME (Local Interpretable Model-agnostic Explanations) shows which regions of the spine
+                            image
+                            contribute most to the ensemble model's prediction (DenseNet 42%, EfficientNet 32%, ResNet
+                            26%).
+                            Green boundaries highlight important superpixels, and the heatmap shows contribution
+                            strength
+                            (red = high impact, blue = low impact).
                         </p>
                         <img id="limeImage" src="" alt="LIME Visualization">
                         <button onclick="downloadLIME()"

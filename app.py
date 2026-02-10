@@ -553,11 +553,12 @@ def detect_lesions(pixel_array, confidence_threshold=0.25):
                     'class': class_name
                 })
                 
-                # Draw bounding box
-                cv2.rectangle(annotated_image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
-                cv2.putText(annotated_image, f"{class_name} {conf:.2f}", 
+                # Draw bounding box (yellow color, thicker line)
+                cv2.rectangle(annotated_image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 4)
+                # Show only class name (no confidence score)
+                cv2.putText(annotated_image, f"{class_name}", 
                            (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 
-                           0.5, (255, 0, 0), 2)
+                           0.6, (0, 255, 255), 2)
     
     # Convert annotated image to base64
     base64 = _get_base64()
@@ -845,7 +846,7 @@ def generate_lime():
         pixel_array, _ = preprocess_image(filepath, is_dicom=is_dicom)
         
         # Import LIME module
-        from lime_explainer import generate_lime_grid, generate_lime_comparison
+        from lime_explainer import generate_lime_ensemble
         
         torch = _get_torch()
         np = _get_numpy()
@@ -868,34 +869,20 @@ def generate_lime():
         pil_image = Image.fromarray(rgb_image)
         input_tensor = transform(pil_image).unsqueeze(0)
         
-        # Get visualization style
-        viz_style = request.form.get('style', 'grid')
-        
         # Generate LIME visualization
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'lime_result.png')
         
-        print(f"\n🔍 Generating LIME Explainability ({viz_style} style)...")
+        print(f"\n🔍 Generating Ensemble LIME Explainability...")
         
-        if viz_style == 'comparison':
-            fig = generate_lime_comparison(
-                classification_models, 
-                input_tensor, 
-                pixel_array, 
-                device,
-                ensemble_weights=ENSEMBLE_WEIGHTS,
-                n_samples=50,
-                n_segments=10
-            )
-        else:  # grid
-            fig = generate_lime_grid(
-                classification_models, 
-                input_tensor, 
-                pixel_array, 
-                device,
-                ensemble_weights=ENSEMBLE_WEIGHTS,
-                n_samples=50,
-                n_segments=10
-            )
+        fig = generate_lime_ensemble(
+            classification_models, 
+            input_tensor, 
+            pixel_array, 
+            device,
+            ensemble_weights=ENSEMBLE_WEIGHTS,
+            n_samples=50,
+            n_segments=10
+        )
         
         fig.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='white')
         
