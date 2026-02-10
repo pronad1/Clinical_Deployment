@@ -668,6 +668,10 @@
                             <span class="icon">🔥</span>
                             <span>Generate Grad-CAM Analysis</span>
                         </button>
+                        <button class="viz-btn" id="limeBtn" onclick="generateLIME()">
+                            <span class="icon">🔍</span>
+                            <span>Generate LIME Explainability</span>
+                        </button>
                         <button class="viz-btn" id="segmentationBtn" onclick="generateSegmentation()">
                             <span class="icon">🎯</span>
                             <span>Generate Segmentation Visualization</span>
@@ -692,6 +696,26 @@
                         <button onclick="downloadGradCAM()"
                             style="margin-top: 15px; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
                             📥 Download Grad-CAM
+                        </button>
+                    </div>
+
+                    <!-- LIME Loading and Results -->
+                    <div class="viz-loading" id="limeLoading">
+                        <div class="spinner"></div>
+                        <p>Generating LIME explanations... This may take 10-20 seconds.</p>
+                    </div>
+                    <div class="viz-result" id="limeResult">
+                        <h3>🔍 LIME Explainability Analysis</h3>
+                        <p style="color: #666; margin-bottom: 15px;">
+                            LIME (Local Interpretable Model-agnostic Explanations) shows which regions of the image
+                            contribute most to each model's prediction. Green boundaries highlight important
+                            superpixels,
+                            and the heatmap shows contribution strength (red = high, blue = low).
+                        </p>
+                        <img id="limeImage" src="" alt="LIME Visualization">
+                        <button onclick="downloadLIME()"
+                            style="margin-top: 15px; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; font-weight: 600; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                            📥 Download LIME Explanation
                         </button>
                     </div>
 
@@ -1145,6 +1169,75 @@
             } finally {
                 segmentationBtn.disabled = false;
             }
+        }
+
+        // Generate LIME Explainability
+        async function generateLIME() {
+            if (!selectedFile) {
+                alert('Please upload a file first');
+                return;
+            }
+
+            const limeBtn = document.getElementById('limeBtn');
+            const limeLoading = document.getElementById('limeLoading');
+            const limeResult = document.getElementById('limeResult');
+
+            limeBtn.disabled = true;
+            limeResult.style.display = 'none';
+            limeLoading.style.display = 'block';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('style', 'grid');
+
+                const response = await fetch('/generate-lime', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.error || 'LIME generation failed');
+                }
+
+                // Display result
+                document.getElementById('limeImage').src = 'data:image/png;base64,' + data.lime_image;
+                limeLoading.style.display = 'none';
+                limeResult.style.display = 'block';
+
+            } catch (error) {
+                limeLoading.style.display = 'none';
+                alert('Error generating LIME: ' + error.message);
+            } finally {
+                limeBtn.disabled = false;
+            }
+        }
+
+        // Download LIME image
+        function downloadLIME() {
+            const img = document.getElementById('limeImage');
+            if (!img.src) {
+                alert('No LIME visualization to download');
+                return;
+            }
+
+            const link = document.createElement('a');
+            const base64Data = img.src.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/png' });
+
+            link.href = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            link.download = `lime_explainability_${timestamp}.png`;
+            link.click();
+            URL.revokeObjectURL(link.href);
         }
     </script>
 </body>

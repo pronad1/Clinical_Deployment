@@ -815,7 +815,7 @@ def generate_gradcam():
 
 @app.route('/generate-lime', methods=['POST'])
 def generate_lime():
-    """Generate custom LIME-like explainability visualizations"""
+    """Generate LIME explainability visualizations"""
     # Lazy load models on first request
     if not models_loaded:
         load_models()
@@ -844,8 +844,8 @@ def generate_lime():
         is_dicom = file_extension in {'dcm', 'dicom'}
         pixel_array, _ = preprocess_image(filepath, is_dicom=is_dicom)
         
-        # Import custom LIME module
-        from custom_lime_explainer import generate_custom_lime_grid, generate_custom_lime_comparison
+        # Import LIME module
+        from lime_explainer import generate_lime_grid, generate_lime_comparison
         
         torch = _get_torch()
         np = _get_numpy()
@@ -868,37 +868,41 @@ def generate_lime():
         pil_image = Image.fromarray(rgb_image)
         input_tensor = transform(pil_image).unsqueeze(0)
         
-        # Get visualization style from request (default to 'grid')
+        # Get visualization style
         viz_style = request.form.get('style', 'grid')
         
-        # Generate LIME-like visualization
+        # Generate LIME visualization
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'lime_result.png')
         
+        print(f"\n🔍 Generating LIME Explainability ({viz_style} style)...")
+        
         if viz_style == 'comparison':
-            fig = generate_custom_lime_comparison(
+            fig = generate_lime_comparison(
                 classification_models, 
                 input_tensor, 
                 pixel_array, 
                 device,
                 ensemble_weights=ENSEMBLE_WEIGHTS,
-                n_samples=300,  # Fewer samples for speed
-                n_segments=50
+                n_samples=50,
+                n_segments=10
             )
-        else:  # default to grid
-            fig = generate_custom_lime_grid(
+        else:  # grid
+            fig = generate_lime_grid(
                 classification_models, 
                 input_tensor, 
                 pixel_array, 
                 device,
                 ensemble_weights=ENSEMBLE_WEIGHTS,
-                n_samples=300,
-                n_segments=50
+                n_samples=50,
+                n_segments=10
             )
         
         fig.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='white')
         
         import matplotlib.pyplot as plt
         plt.close(fig)
+        
+        print("✓ LIME visualization generated successfully")
         
         # Convert to base64
         base64 = _get_base64()
