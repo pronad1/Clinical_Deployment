@@ -553,12 +553,12 @@ def detect_lesions(pixel_array, confidence_threshold=0.25):
                     'class': class_name
                 })
                 
-                # Draw bounding box (yellow color, thicker line)
-                cv2.rectangle(annotated_image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 4)
+                # Draw bounding box (yellow color, thicker line for better visibility)
+                cv2.rectangle(annotated_image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 8)
                 # Show only class name (no confidence score)
                 cv2.putText(annotated_image, f"{class_name}", 
                            (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 
-                           0.6, (0, 255, 255), 2)
+                           1.0, (0, 255, 255), 3)
     
     # Convert annotated image to base64
     base64 = _get_base64()
