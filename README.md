@@ -647,6 +647,3 @@ If you use this software in your research, please cite:
 - Deployment Guide: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
 - API Documentation: [DEPLOYMENT.md](DEPLOYMENT.md)
 - Contributing Guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-**Maintained with commitment to advancing medical AI research and open-source collaboration.**
