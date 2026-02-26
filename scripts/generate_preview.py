@@ -1,5 +1,5 @@
 """
-Generate preview visualization for qualitative segmentation
+Generate preview visualization for qualitative visualization
 """
 import numpy as np
 import cv2

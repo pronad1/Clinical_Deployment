@@ -1,5 +1,5 @@
 """
-Qualitative Segmentation Visualization Generator
+Qualitative Visualization Generator
 Generates comparison visualizations for segmentation tasks including:
 - Ground truth masks
 - Predicted masks
@@ -220,7 +220,7 @@ def create_qualitative_segmentation_grid(original_image, ground_truth_mask,
     axes[4].axis('off')
     
     # Add overall title
-    fig.suptitle(f'Qualitative Segmentation - {image_name}', 
+    fig.suptitle(f'Qualitative Visualization - {image_name}', 
                  fontsize=14, fontweight='bold', y=1.02)
     
     plt.tight_layout()

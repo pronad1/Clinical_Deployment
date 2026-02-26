@@ -11,6 +11,7 @@
 ## Table of Contents
 - [Overview](#overview)
 - [Features](#features)
+- [Project Structure](#project-structure)
 - [System Architecture](#system-architecture)
 - [Performance Metrics](#performance-metrics)
 - [Installation](#installation)
@@ -49,7 +50,8 @@ Built upon the VinDr-SpineXR dataset, a comprehensive annotated medical image re
 - ✅ DICOM format validation and preprocessing
 - ✅ Automated photometric interpretation handling
 - ✅ RESTful API for programmatic access
-- ✅ Interactive web interface with drag-and-drop upload
+- ✅ **Professional web interface with modern medical design**
+- ✅ Interactive drag-and-drop upload with visual feedback
 - ✅ Comprehensive metadata extraction and display
 
 ### Technical Features
@@ -59,6 +61,34 @@ Built upon the VinDr-SpineXR dataset, a comprehensive annotated medical image re
 - Stateless architecture for horizontal scalability
 - Containerized deployment with Docker
 - Production-ready logging and error handling
+
+## Project Structure
+
+The project follows a professional, modular architecture:
+
+```
+Clinical_Deployment/
+├── src/                    # Main application source code
+│   ├── app.py             # Flask application & API endpoints
+│   ├── models/            # Model loading & inference
+│   ├── utils/             # Image processing utilities
+│   └── explainability/    # XAI modules (Grad-CAM, LIME)
+├── models/                # Trained model weights
+│   ├── ensemble/          # Classification models
+│   └── detection/         # YOLO11 detection model
+├── tests/                 # Comprehensive test suite
+├── scripts/               # Utility scripts
+├── docs/                  # Documentation
+├── data/                  # Data directory
+│   ├── samples/           # Test DICOM files
+│   └── uploads/           # Runtime uploads
+├── config/                # Configuration files
+├── templates/             # HTML templates
+├── static/                # Web assets
+└── run.py                 # Application entry point
+```
+
+📖 **For detailed structure documentation, see [STRUCTURE.md](STRUCTURE.md)**
 
 ## System Architecture
 
@@ -131,9 +161,12 @@ Built upon the VinDr-SpineXR dataset, a comprehensive annotated medical image re
 - Gunicorn (WSGI server)
 
 **Frontend**
-- HTML5/CSS3
-- JavaScript (ES6+)
-- Responsive design
+- Modern HTML5/CSS3 with professional medical design system
+- Vanilla JavaScript (ES6+) with modular architecture
+- Fully responsive design (mobile, tablet, desktop)
+- Professional medical blue color palette
+- Accessibility compliant (WCAG AA)
+- Separated CSS/JS files for maintainability
 
 **Infrastructure**
 - Docker containerization
@@ -217,18 +250,22 @@ pip install -r requirements.txt
 
 Ensure the following model checkpoints exist:
 ```
-ensemble output/
-├── densenet121_balanced/model_best.pth      (80 MB)
-├── resnet50_optimized/model_best.pth        (26 MB)
-└── tf_efficientnetv2_s_optimized/model_best.pth  (23 MB)
-
-detection output/
-└── yolo11/weights/best.pt                   (48 MB)
+models/
+├── ensemble/
+│   ├── densenet121_balanced/model_best.pth      (80 MB)
+│   ├── resnet50_optimized/model_best.pth        (26 MB)
+│   └── tf_efficientnetv2_s_optimized/model_best.pth  (23 MB)
+└── detection/
+    └── yolo11/weights/best.pt                   (48 MB)
 ```
 
 **5. Run Application**
 ```bash
-python app.py
+# Development server
+python run.py
+
+# Or with production server
+gunicorn --config config/gunicorn_config.py src.app:app
 ```
 
 **6. Access Application**
@@ -304,11 +341,19 @@ LOG_LEVEL=INFO                # DEBUG, INFO, WARNING, ERROR
 
 ### Web Interface
 
+The application features a **professional, modern web interface** with medical-grade design:
+- 🎨 Clean medical blue theme (professional and trustworthy)
+- 📱 Fully responsive (works on all devices)
+- ♿ Accessible (WCAG AA compliant)
+- ⚡ Fast and smooth animations
+- 📊 Clear status indicators and metrics
+
 **Step 1: Upload DICOM File**
 1. Navigate to the application URL
 2. Click the upload area or drag-and-drop a DICOM file
 3. Supported formats: `.dcm`, `.dicom`
 4. Maximum file size: 16 MB
+5. See immediate visual feedback with file selection
 
 **Step 2: Processing**
 - Automatic validation of DICOM structure

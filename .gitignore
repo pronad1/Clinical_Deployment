@@ -32,6 +32,12 @@ Thumbs.db
 # Upload directory
 uploads/*
 !uploads/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Test outputs
+tests_output/*
+!tests_output/.gitkeep
 
 # Logs
 *.log
@@ -43,10 +49,16 @@ uploads/*
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
+# Matplotlib cache
+.matplotlib/
+
+# Ultralytics cache
+Ultralytics/
+
 # Model weights (uncomment if you want to exclude from repo)
 # Note: Currently included as they're under 100MB each
-# ensemble output/**/*.pth
-# detection output/**/*.pt
+# models/ensemble/**/*.pth
+# models/detection/**/*.pt
 
 # Training artifacts (already cleaned)
 # These patterns are just in case new training files are added

@@ -20,16 +20,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY app.py .
+COPY src/ src/
 COPY templates/ templates/
 COPY static/ static/
+COPY config/ config/
+COPY run.py .
 
 # Copy model files
-COPY "ensemble output/" "ensemble output/"
-COPY "detection output/" "detection output/"
+COPY models/ models/
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create directories
+RUN mkdir -p data/uploads data/samples
 
 # Expose port
 EXPOSE 5000
@@ -39,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:5000/health')"
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["python", "run.py"]

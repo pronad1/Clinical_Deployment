@@ -6,6 +6,9 @@ import traceback
 import warnings
 from werkzeug.utils import secure_filename
 
+# Add src directory to Python path for explainability modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
 # Memory optimization - set environment variables BEFORE importing heavy libraries
 os.environ['MPLCONFIGDIR'] = '/tmp/matplotlib' if os.environ.get('RENDER') else os.path.join(os.getcwd(), '.matplotlib')
 os.environ['YOLO_CONFIG_DIR'] = '/tmp'  # Fix Ultralytics config directory warning
@@ -61,14 +64,23 @@ def _get_base64():
     import base64
     return base64
 
-app = Flask(__name__)
+# Get project root directory (where app.py is located)
+project_root = os.path.dirname(os.path.abspath(__file__))
+
+# Configure Flask with correct paths for templates and static files
+app = Flask(
+    __name__,
+    template_folder=os.path.join(project_root, 'templates'),
+    static_folder=os.path.join(project_root, 'static')
+)
 CORS(app)  # Enable CORS for all routes
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 if os.environ.get('RENDER'):
     app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
 else:
-    app.config['UPLOAD_FOLDER'] = 'uploads'
+    # Use project root for paths when running from src/
+    app.config['UPLOAD_FOLDER'] = os.path.join(project_root, 'data', 'uploads')
 
 # Allowed image extensions
 ALLOWED_EXTENSIONS = {'dcm', 'dicom', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif'}
@@ -129,12 +141,13 @@ def load_models():
         print("Loading models...")
         print(f"Device: {device} (CPU-only mode for memory optimization)")
         print(f"Current directory: {os.getcwd()}")
+        print(f"Projectroot: {project_root}")
         
         # Load Classification Models
         try:
             # DenseNet121
             densenet = timm.create_model('densenet121', pretrained=False, num_classes=1)
-            densenet_path = os.path.join('ensemble output', 'densenet121_balanced', 'model_best.pth')
+            densenet_path = os.path.join(project_root, 'models', 'ensemble', 'densenet121_balanced', 'model_best.pth')
             print(f"Looking for DenseNet at: {densenet_path}")
             if os.path.exists(densenet_path):
                 checkpoint = torch.load(densenet_path, map_location=device, weights_only=False)
@@ -151,7 +164,7 @@ def load_models():
             
             # ResNet50
             resnet = timm.create_model('resnet50', pretrained=False, num_classes=1)
-            resnet_path = os.path.join('ensemble output', 'resnet50_optimized', 'model_best.pth')
+            resnet_path = os.path.join(project_root, 'models', 'ensemble', 'resnet50_optimized', 'model_best.pth')
             print(f"Looking for ResNet50 at: {resnet_path}")
             if os.path.exists(resnet_path):
                 checkpoint = torch.load(resnet_path, map_location=device, weights_only=False)
@@ -166,7 +179,7 @@ def load_models():
             
             # EfficientNetV2-S
             efficientnet = timm.create_model('tf_efficientnetv2_s', pretrained=False, num_classes=1)
-            efficientnet_path = os.path.join('ensemble output', 'tf_efficientnetv2_s_optimized', 'model_best.pth')
+            efficientnet_path = os.path.join(project_root, 'models', 'ensemble', 'tf_efficientnetv2_s_optimized', 'model_best.pth')
             print(f"Looking for EfficientNet at: {efficientnet_path}")
             if os.path.exists(efficientnet_path):
                 checkpoint = torch.load(efficientnet_path, map_location=device, weights_only=False)
@@ -185,7 +198,7 @@ def load_models():
         
         # Load YOLO Detection Model
         try:
-            yolo_path = os.path.join('detection output', 'yolo11', 'weights', 'best.pt')
+            yolo_path = os.path.join(project_root, 'models', 'detection', 'yolo11', 'weights', 'best.pt')
             print(f"Looking for YOLO at: {yolo_path}")
             if os.path.exists(yolo_path):
                 detection_model = YOLO(yolo_path)
@@ -750,7 +763,7 @@ def generate_gradcam():
         pixel_array, _ = preprocess_image(filepath, is_dicom=is_dicom)
         
         # Import Grad-CAM module
-        from gradcam_generator import generate_gradcam_grid
+        from explainability.gradcam import generate_gradcam_grid
         
         torch = _get_torch()
         np = _get_numpy()
@@ -846,7 +859,7 @@ def generate_lime():
         pixel_array, _ = preprocess_image(filepath, is_dicom=is_dicom)
         
         # Import LIME module
-        from lime_explainer import generate_lime_ensemble
+        from explainability.lime_explainer import generate_lime_ensemble
         
         torch = _get_torch()
         np = _get_numpy()
@@ -920,7 +933,7 @@ def generate_lime():
 
 @app.route('/generate-segmentation', methods=['POST'])
 def generate_segmentation():
-    """Generate qualitative segmentation visualizations"""
+    """Generate qualitative visualization"""
     # Lazy load models on first request
     if not models_loaded:
         load_models()
@@ -950,7 +963,7 @@ def generate_segmentation():
         pixel_array, _ = preprocess_image(filepath, is_dicom=is_dicom)
         
         # Import segmentation module
-        from segmentation_visualizer import (
+        from explainability.segmentation import (
             create_binary_mask_from_detections,
             generate_synthetic_ground_truth,
             simulate_prediction_with_errors,
