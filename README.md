@@ -18,7 +18,6 @@
 - [Deployment](#deployment)
 - [Usage](#usage)
 - [API Reference](#api-reference)
-- [Development](#development)
 - [Security](#security)
 - [Medical Disclaimer](#medical-disclaimer)
 - [Contributing](#contributing)
