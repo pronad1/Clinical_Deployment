@@ -61,31 +61,6 @@ Built upon the VinDr-SpineXR dataset, a comprehensive annotated medical image re
 - Containerized deployment with Docker
 - Production-ready logging and error handling
 
-## Project Structure
-
-The project follows a professional, modular architecture:
-
-```
-Clinical_Deployment/
-├── src/                    # Main application source code
-│   ├── app.py             # Flask application & API endpoints
-│   ├── models/            # Model loading & inference
-│   ├── utils/             # Image processing utilities
-│   └── explainability/    # XAI modules (Grad-CAM, LIME)
-├── models/                # Trained model weights
-│   ├── ensemble/          # Classification models
-│   └── detection/         # YOLO11 detection model
-├── tests/                 # Comprehensive test suite
-├── scripts/               # Utility scripts
-├── docs/                  # Documentation
-├── data/                  # Data directory
-│   ├── samples/           # Test DICOM files
-│   └── uploads/           # Runtime uploads
-├── config/                # Configuration files
-├── templates/             # HTML templates
-├── static/                # Web assets
-└── run.py                 # Application entry point
-```
 
 📖 **For detailed structure documentation, see [STRUCTURE.md](STRUCTURE.md)**
 
