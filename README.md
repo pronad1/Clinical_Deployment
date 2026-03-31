@@ -122,7 +122,6 @@ Built upon the VinDr-SpineXR dataset, a comprehensive annotated medical image re
 - **Architecture**: YOLO11 (You Only Look Once v11)
 - **Input Size**: 640×640 pixels
 - **Output**: Bounding boxes with class probabilities
-- **Training**: 35 epochs on VinDr-SpineXR annotations
 
 ### Technology Stack
 
