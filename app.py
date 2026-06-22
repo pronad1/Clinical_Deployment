@@ -1013,7 +1013,7 @@ def generate_segmentation():
             predicted_mask,
             image_name=filename
         )
-        fig.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='white')
+        fig.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
         
         import matplotlib.pyplot as plt
         plt.close(fig)

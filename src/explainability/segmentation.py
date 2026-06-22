@@ -180,8 +180,8 @@ def create_qualitative_segmentation_grid(original_image, ground_truth_mask,
     Returns:
         fig: Matplotlib figure with grid layout
     """
-    # Create figure with 1 row, 5 columns
-    fig, axes = plt.subplots(1, 5, figsize=(20, 4))
+    # Create figure with 1 row, 3 columns
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
     
     # Prepare original image
     if len(original_image.shape) == 2:
@@ -193,35 +193,23 @@ def create_qualitative_segmentation_grid(original_image, ground_truth_mask,
     
     # 1. Original Image
     axes[0].imshow(img_display, cmap=cmap)
-    axes[0].set_title('Image', fontsize=12, fontweight='bold')
+    axes[0].set_title('Image', fontsize=14, fontweight='bold')
     axes[0].axis('off')
     
-    # 2. Ground Truth Mask
-    axes[1].imshow(ground_truth_mask, cmap='gray')
-    axes[1].set_title('Mask', fontsize=12, fontweight='bold')
+    # 2. Predicted Mask (Segmentation Mask)
+    axes[1].imshow(predicted_mask, cmap='gray')
+    axes[1].set_title('Segmented Mask', fontsize=14, fontweight='bold')
     axes[1].axis('off')
     
-    # 3. Predicted Mask (Segmentation Mask)
-    axes[2].imshow(predicted_mask, cmap='gray')
-    axes[2].set_title('Segmented Mask', fontsize=12, fontweight='bold')
-    axes[2].axis('off')
-    
-    # 4. Error Analysis
-    error_mask = compute_error_mask(ground_truth_mask, predicted_mask)
-    error_viz = visualize_error_analysis(original_image, error_mask)
-    axes[3].imshow(error_viz)
-    axes[3].set_title('Error Analysis', fontsize=12, fontweight='bold')
-    axes[3].axis('off')
-    
-    # 5. Boundary Details
+    # 3. Boundary Details
     boundary_viz = visualize_boundary_details(original_image, ground_truth_mask, predicted_mask)
-    axes[4].imshow(boundary_viz)
-    axes[4].set_title('Boundary Details', fontsize=12, fontweight='bold')
-    axes[4].axis('off')
+    axes[2].imshow(boundary_viz)
+    axes[2].set_title('Boundary Details', fontsize=14, fontweight='bold')
+    axes[2].axis('off')
     
     # Add overall title
     fig.suptitle(f'Qualitative Visualization - {image_name}', 
-                 fontsize=14, fontweight='bold', y=1.02)
+                 fontsize=16, fontweight='bold', y=1.05)
     
     plt.tight_layout()
     return fig
@@ -243,7 +231,7 @@ def create_multi_sample_segmentation_grid(samples_list, num_samples=3):
         fig: Matplotlib figure
     """
     num_samples = min(num_samples, len(samples_list))
-    fig, axes = plt.subplots(num_samples, 5, figsize=(20, 4 * num_samples))
+    fig, axes = plt.subplots(num_samples, 3, figsize=(12, 4 * num_samples))
     
     if num_samples == 1:
         axes = axes.reshape(1, -1)
@@ -264,41 +252,27 @@ def create_multi_sample_segmentation_grid(samples_list, num_samples=3):
         # 1. Original Image
         axes[idx, 0].imshow(img_display, cmap=cmap)
         if idx == 0:
-            axes[idx, 0].set_title('Image', fontsize=12, fontweight='bold')
+            axes[idx, 0].set_title('Image', fontsize=14, fontweight='bold')
         axes[idx, 0].axis('off')
         
-        # 2. Ground Truth Mask
-        axes[idx, 1].imshow(gt_mask, cmap='gray')
+        # 2. Predicted Mask
+        axes[idx, 1].imshow(pred_mask, cmap='gray')
         if idx == 0:
-            axes[idx, 1].set_title('Mask', fontsize=12, fontweight='bold')
+            axes[idx, 1].set_title('Segmented Mask', fontsize=14, fontweight='bold')
         axes[idx, 1].axis('off')
         
-        # 3. Predicted Mask
-        axes[idx, 2].imshow(pred_mask, cmap='gray')
-        if idx == 0:
-            axes[idx, 2].set_title('Segmented Mask', fontsize=12, fontweight='bold')
-        axes[idx, 2].axis('off')
-        
-        # 4. Error Analysis
-        error_mask = compute_error_mask(gt_mask, pred_mask)
-        error_viz = visualize_error_analysis(original, error_mask)
-        axes[idx, 3].imshow(error_viz)
-        if idx == 0:
-            axes[idx, 3].set_title('Error Analysis', fontsize=12, fontweight='bold')
-        axes[idx, 3].axis('off')
-        
-        # 5. Boundary Details
+        # 3. Boundary Details
         boundary_viz = visualize_boundary_details(original, gt_mask, pred_mask)
-        axes[idx, 4].imshow(boundary_viz)
+        axes[idx, 2].imshow(boundary_viz)
         if idx == 0:
-            axes[idx, 4].set_title('Boundary Details', fontsize=12, fontweight='bold')
-        axes[idx, 4].axis('off')
+            axes[idx, 2].set_title('Boundary Details', fontsize=14, fontweight='bold')
+        axes[idx, 2].axis('off')
     
     plt.tight_layout()
     return fig
 
 
-def save_segmentation_visualization(samples_list, output_path, num_samples=3, dpi=150):
+def save_segmentation_visualization(samples_list, output_path, num_samples=3, dpi=300):
     """
     Generate and save segmentation visualization
     Args:
