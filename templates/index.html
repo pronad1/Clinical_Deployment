@@ -243,7 +243,8 @@
                             <h3 style="color: var(--primary-blue); margin-bottom: 1rem;">🎯 Qualitative Visualization
                                 Analysis</h3>
                             <p style="color: var(--gray-600); margin-bottom: 1rem;">
-                                Segmentation visualization shows the original image, predicted mask, and boundary details
+                                Segmentation visualization shows the original image, predicted mask, and boundary
+                                details
                                 (comparing ground truth and predicted boundaries).
                             </p>
                             <img id="segmentationImage" src="" alt="Segmentation Visualization" class="preview-image">
@@ -258,9 +259,11 @@
                             <p class="loading-text">Generating Post-Hoc visualizations...</p>
                         </div>
                         <div class="viz-result" id="posthocResult">
-                            <h3 style="color: var(--primary-blue); margin-bottom: 1rem;">✨ Post-Hoc Saliency Analysis</h3>
+                            <h3 style="color: var(--primary-blue); margin-bottom: 1rem;">✨ Post-Hoc Saliency Analysis
+                            </h3>
                             <p style="color: var(--gray-600); margin-bottom: 1rem;">
-                                Post-hoc saliency maps reveal the most salient features that the model uses to make its predictions.
+                                Post-hoc saliency maps reveal the most salient features that the model uses to make its
+                                predictions.
                             </p>
                             <img id="posthocImage" src="" alt="Post-Hoc Visualization" class="preview-image">
                             <button class="btn btn-success mt-lg" onclick="downloadPostHoc()">
@@ -329,6 +332,7 @@
 
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
 </body>
 
 </html>
