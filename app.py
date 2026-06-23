@@ -1045,6 +1045,102 @@ def generate_segmentation():
         }), 500
 
 
+@app.route('/generate-posthoc', methods=['POST'])
+def generate_posthoc():
+    """Generate Post-Hoc visualizations"""
+    # Lazy load models on first request
+    if not models_loaded:
+        load_models()
+    
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Save file temporarily
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Check file format
+        if not allowed_file(filename):
+            os.remove(filepath)
+            return jsonify({'error': 'Invalid file format'}), 400
+        
+        # Process image
+        file_extension = filename.rsplit('.', 1)[1].lower()
+        is_dicom = file_extension in {'dcm', 'dicom'}
+        pixel_array, _ = preprocess_image(filepath, is_dicom=is_dicom)
+        
+        # Import Post-Hoc module
+        from explainability.posthoc import generate_posthoc_grid
+        
+        torch = _get_torch()
+        np = _get_numpy()
+        Image, io = _get_pil()
+        transforms = _get_transforms()
+        
+        # Prepare input tensor
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        ])
+        
+        # Convert grayscale to RGB
+        if len(pixel_array.shape) == 2:
+            rgb_image = np.stack([pixel_array] * 3, axis=-1)
+        else:
+            rgb_image = pixel_array
+        
+        pil_image = Image.fromarray(rgb_image)
+        input_tensor = transform(pil_image).unsqueeze(0)
+        
+        # Generate ensemble Post-Hoc
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], 'posthoc_result.png')
+        fig = generate_posthoc_grid(
+            classification_models, 
+            input_tensor, 
+            pixel_array, 
+            device,
+            ensemble_weights=ENSEMBLE_WEIGHTS
+        )
+        fig.savefig(output_path, dpi=150, bbox_inches='tight', facecolor='white')
+        
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+        
+        # Convert to base64
+        base64 = _get_base64()
+        with open(output_path, 'rb') as f:
+            img_base64 = base64.b64encode(f.read()).decode('utf-8')
+        
+        # Clean up
+        os.remove(filepath)
+        os.remove(output_path)
+        
+        return jsonify({
+            'success': True,
+            'posthoc_image': img_base64
+        })
+        
+    except Exception as e:
+        if 'filepath' in locals() and os.path.exists(filepath):
+            os.remove(filepath)
+        
+        print(f"Error generating Post-Hoc: {str(e)}")
+        traceback.print_exc()
+        
+        return jsonify({
+            'error': 'Post-Hoc generation failed',
+            'message': str(e)
+        }), 500
+
+
 @app.route('/health')
 def health():
     """Health check endpoint - returns immediately without loading models"""

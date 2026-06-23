@@ -258,6 +258,7 @@ window.downloadAnnotatedImage = () => downloadImage('annotatedImage', 'spine_les
 window.downloadOriginalImage = () => downloadImage('previewImage', 'spine_original');
 window.downloadGradCAM = () => downloadImage('gradcamImage', 'gradcam_ensemble');
 window.downloadSegmentation = () => downloadImage('segmentationImage', 'segmentation_analysis');
+window.downloadPostHoc = () => downloadImage('posthocImage', 'posthoc_saliency');
 
 window.downloadLIME = () => {
     const img = document.getElementById('limeImage');
@@ -319,6 +320,7 @@ async function generateVisualization(endpoint, btnId, loadingId, resultId, image
         // Display result
         const imageKey = endpoint.includes('gradcam') ? 'gradcam_image' :
             endpoint.includes('lime') ? 'lime_image' :
+            endpoint.includes('posthoc') ? 'posthoc_image' :
                 'segmentation_image';
         document.getElementById(imageId).src = 'data:image/png;base64,' + data[imageKey];
         loading.style.display = 'none';
@@ -342,6 +344,10 @@ window.generateLIME = () => generateVisualization(
 
 window.generateSegmentation = () => generateVisualization(
     '/generate-segmentation', 'segmentationBtn', 'segmentationLoading', 'segmentationResult', 'segmentationImage'
+);
+
+window.generatePostHoc = () => generateVisualization(
+    '/generate-posthoc', 'posthocBtn', 'posthocLoading', 'posthocResult', 'posthocImage'
 );
 
 // ===== Error Handler for Retry =====

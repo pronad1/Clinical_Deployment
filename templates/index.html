@@ -188,6 +188,10 @@
                                 <span class="icon">🎯</span>
                                 <span>Visualization View</span>
                             </button>
+                            <button class="viz-btn" id="posthocBtn" onclick="generatePostHoc()">
+                                <span class="icon">✨</span>
+                                <span>Post-Hoc Saliency</span>
+                            </button>
                         </div>
 
                         <!-- Grad-CAM Results -->
@@ -245,6 +249,22 @@
                             <img id="segmentationImage" src="" alt="Segmentation Visualization" class="preview-image">
                             <button class="btn btn-success mt-lg" onclick="downloadSegmentation()">
                                 📥 Download Segmentation
+                            </button>
+                        </div>
+
+                        <!-- Post-Hoc Results -->
+                        <div class="loading-screen" id="posthocLoading">
+                            <div class="spinner"></div>
+                            <p class="loading-text">Generating Post-Hoc visualizations...</p>
+                        </div>
+                        <div class="viz-result" id="posthocResult">
+                            <h3 style="color: var(--primary-blue); margin-bottom: 1rem;">✨ Post-Hoc Saliency Analysis</h3>
+                            <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                                Post-hoc saliency maps reveal the most salient features that the model uses to make its predictions.
+                            </p>
+                            <img id="posthocImage" src="" alt="Post-Hoc Visualization" class="preview-image">
+                            <button class="btn btn-success mt-lg" onclick="downloadPostHoc()">
+                                📥 Download Post-Hoc Analysis
                             </button>
                         </div>
                     </section>
