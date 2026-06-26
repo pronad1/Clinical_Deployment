@@ -515,22 +515,6 @@ git push origin feature/your-feature-name
 - Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
 - Example: `feat: add batch processing endpoint`
 
-### Testing
-
-**Run Unit Tests**
-```bash
-pytest tests/ -v
-```
-
-**Run Integration Tests**
-```bash
-pytest tests/integration/ -v
-```
-
-**Check Code Coverage**
-```bash
-pytest --cov=. --cov-report=html
-```
 
 ## Security
 
